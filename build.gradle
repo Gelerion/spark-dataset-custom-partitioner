@@ -1,0 +1,22 @@
+plugins {
+    id 'java'
+    id 'scala'
+}
+
+group 'com.gelerion.spark.dataset.api.partitioner'
+version '0.0.1-SNAPSHOT'
+
+sourceCompatibility = 1.8
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.scala-lang:scala-library:2.11.8'
+    implementation "org.scala-lang:scala-reflect:2.11.8"
+    implementation group: 'org.apache.spark', name: 'spark-sql_2.11', version: '2.4.4'
+
+    testImplementation 'org.scalactic:scalactic_2.11:3.0.8'
+    testImplementation 'org.scalatest:scalatest_2.11:3.0.8'
+}
