@@ -1,7 +1,7 @@
 package org.apache.spark.sql.exchange.integration
 
 import com.gelerion.spark.dataset.partitioner.RepartitionByCustomStrategy
-import org.apache.spark.sql.{DataFrame, Dataset, Row}
+import org.apache.spark.sql.Dataset
 import org.apache.spark.sql.exchange.partitioner.TypedPartitioner
 import org.apache.spark.sql.exchange.test.{SharedSparkSession, SparkFunSuite}
 import org.scalatest.BeforeAndAfterEach

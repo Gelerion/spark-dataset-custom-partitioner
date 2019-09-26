@@ -1,5 +1,6 @@
 package org.apache.spark.sql.exchange.test
 
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.catalyst.optimizer.ConvertToLocalRelation
 import org.apache.spark.sql.internal.SQLConf
@@ -12,6 +13,7 @@ trait SharedSparkSession extends BeforeAndAfterEach
   with Eventually { self: Suite =>
 
   protected def sparkConf = {
+    Logger.getLogger("org").setLevel(Level.OFF)
     new SparkConf()
       //.set("spark.hadoop.fs.file.impl", classOf[DebugFilesystem].getName)
       .set("spark.unsafe.exceptionOnMemoryLeak", "true")

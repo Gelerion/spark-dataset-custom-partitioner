@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.errors.attachTree
 import org.apache.spark.sql.catalyst.expressions.Attribute
 import org.apache.spark.sql.catalyst.plans.physical.Partitioning
-import org.apache.spark.sql.exchange.partitioner.InternalTypedPartitioning
+import org.apache.spark.sql.exchange.partitioner.CustomPartitioning
 import org.apache.spark.sql.execution.exchange.Exchange
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
 import org.apache.spark.sql.execution.{ShuffledRowRDD, SparkPlan, UnsafeRowSerializer}
@@ -55,8 +55,8 @@ case class ShuffleExchangeWithCustomPartitionerExec(partitioning: Partitioning, 
    * [[ShuffledRowRDD]] will fetch pre-shuffle partitions based on indices of this array.
    */
   private[exchange] def preparePostShuffleRDD(
-                                               shuffleDependency: ShuffleDependency[Int, InternalRow, InternalRow],
-                                               specifiedPartitionStartIndices: Option[Array[Int]] = None): ShuffledRowRDD = {
+                   shuffleDependency: ShuffleDependency[Int, InternalRow, InternalRow],
+                   specifiedPartitionStartIndices: Option[Array[Int]] = None): ShuffledRowRDD = {
     //    // If an array of partition start indices is provided, we need to use this array
     //    // to create the ShuffledRowRDD. Also, we need to update newPartitioning to
     //    // update the number of post-shuffle partitions.
@@ -76,13 +76,13 @@ object ShuffleExchangeWithCustomPartitionerExec {
    * the returned ShuffleDependency will be the input of shuffle.
    */
   def prepareShuffleDependency(
-                                rdd: RDD[InternalRow],
-                                outputAttributes: Seq[Attribute],
-                                partitioning: Partitioning,
-                                serializer: Serializer): ShuffleDependency[Int, InternalRow, InternalRow] = {
+             rdd: RDD[InternalRow],
+             outputAttributes: Seq[Attribute],
+             partitioning: Partitioning,
+             serializer: Serializer): ShuffleDependency[Int, InternalRow, InternalRow] = {
 
     val partitioner: Partitioner = partitioning match {
-      case customPartitioning: InternalTypedPartitioning[_] => customPartitioning.partitioner
+      case customPartitioning: CustomPartitioning => customPartitioning.partitioner
       case _ => sys.error(s"Exchange not implemented for $partitioning")
     }
 
@@ -90,7 +90,7 @@ object ShuffleExchangeWithCustomPartitionerExec {
     // 2. needToCopyObjectsBeforeShuffle(part) TODO
 
     def partitionKeyExtractor(): InternalRow => Any = partitioning match {
-      case customPartitioning: InternalTypedPartitioning[_] => customPartitioning.getPartitionKey
+      case customPartitioning: CustomPartitioning => customPartitioning.getPartitionKey
       case _ => sys.error(s"Exchange not implemented for $partitioning")
     }
 
