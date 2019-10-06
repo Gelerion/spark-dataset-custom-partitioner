@@ -1,7 +1,7 @@
 package org.apache.spark.sql.exchange.logical
 
 import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, RepartitionOperation}
-import org.apache.spark.sql.exchange.partitioner.{CustomPartitioning, InternalTypedPartitioning}
+import org.apache.spark.sql.exchange.repartition.partitioning.CustomPartitioning
 
 case class RepartitionByCustom(child: LogicalPlan,
                                partitioning: CustomPartitioning) extends RepartitionOperation {

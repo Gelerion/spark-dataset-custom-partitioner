@@ -2,8 +2,9 @@ package org.apache.spark.sql.exchange.integration
 
 import com.gelerion.spark.dataset.partitioner.RepartitionByCustomStrategy
 import org.apache.spark.sql.Dataset
-import org.apache.spark.sql.exchange.partitioner.TypedPartitioner
+import org.apache.spark.sql.exchange.repartition.partitioner.TypedPartitioner
 import org.apache.spark.sql.exchange.test.{SharedSparkSession, SparkFunSuite}
+import org.apache.spark.sql.types.{DataType, StringType}
 import org.scalatest.BeforeAndAfterEach
 
 class TypedPartitionerIntegrationTest extends SparkFunSuite with SharedSparkSession with BeforeAndAfterEach {
@@ -75,4 +76,6 @@ class TypedPartitionerIntegrationTest extends SparkFunSuite with SharedSparkSess
 class DepartmentByIdPartitioner extends TypedPartitioner[Dept] {
   override def getPartitionIdx(value: Dept): Int = if (value.id.startsWith("a")) 0 else 1
   override def numPartitions: Int = 2
+
+  override def partitionKeys: Option[Set[PartitionKey]] = Some(Set(("id", StringType)))
 }

@@ -1,9 +1,10 @@
-package org.apache.spark.sql.exchange.partitioner
+package org.apache.spark.sql.exchange.repartition.partitioning
 
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.expressions.codegen.GenerateSafeProjection
+import org.apache.spark.sql.exchange.repartition.partitioner.RowPartitioner
 
 private [exchange] class InternalRowPartitioning(val partitioner: RowPartitioner, val deserializer: Expression)
   extends CustomPartitioning with Serializable {
@@ -16,4 +17,11 @@ private [exchange] class InternalRowPartitioning(val partitioner: RowPartitioner
   }
 
   override val numPartitions: Int = partitioner.numPartitions
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: InternalRowPartitioning => that.canEqual(this) && this.partitioner == that.partitioner
+    case _ => false
+  }
+
+  private def canEqual(a: Any): Boolean = a.isInstanceOf[InternalRowPartitioning]
 }

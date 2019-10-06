@@ -1,7 +1,7 @@
 package org.apache.spark.sql.exchange.integration
 
 import com.gelerion.spark.dataset.partitioner.RepartitionByCustomStrategy
-import org.apache.spark.sql.exchange.partitioner.RowPartitioner
+import org.apache.spark.sql.exchange.repartition.partitioner.RowPartitioner
 import org.apache.spark.sql.exchange.test.{SharedSparkSession, SparkFunSuite}
 import org.apache.spark.sql.{DataFrame, Row}
 import org.scalatest.BeforeAndAfterEach
@@ -30,6 +30,8 @@ class RowPartitionerIntegrationTest extends SparkFunSuite with SharedSparkSessio
     //rest
     assert(result(1)._2.length == 6)
   }
+
+  //TODO test false scenario
 
   lazy val department: DataFrame = Seq(
       Dept("a", "ant dept"),

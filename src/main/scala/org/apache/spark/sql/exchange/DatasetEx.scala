@@ -4,7 +4,8 @@ import org.apache.spark.sql.catalyst.encoders.{ExpressionEncoder, RowEncoder, en
 import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.exchange.logical.RepartitionByCustom
-import org.apache.spark.sql.exchange.partitioner.{InternalRowPartitioning, InternalTypedPartitioning, RowPartitioner, TypedPartitioner}
+import org.apache.spark.sql.exchange.repartition.partitioner.{RowPartitioner, TypedPartitioner}
+import org.apache.spark.sql.exchange.repartition.partitioning.{InternalRowPartitioning, InternalTypedPartitioning}
 import org.apache.spark.sql.{DataFrame, Dataset, Encoder, Row, SparkSession}
 
 import scala.reflect.ClassTag

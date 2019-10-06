@@ -5,8 +5,8 @@ import org.apache.spark.serializer.Serializer
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.errors.attachTree
 import org.apache.spark.sql.catalyst.expressions.Attribute
-import org.apache.spark.sql.catalyst.plans.physical.Partitioning
-import org.apache.spark.sql.exchange.partitioner.CustomPartitioning
+import org.apache.spark.sql.catalyst.plans.physical.{Distribution, HashClusteredDistribution, Partitioning}
+import org.apache.spark.sql.exchange.repartition.partitioning.CustomPartitioning
 import org.apache.spark.sql.execution.exchange.Exchange
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics}
 import org.apache.spark.sql.execution.{ShuffledRowRDD, SparkPlan, UnsafeRowSerializer}
@@ -66,6 +66,14 @@ case class ShuffleExchangeWithCustomPartitionerExec(partitioning: Partitioning, 
     //    }
     new ShuffledRowRDD(shuffleDependency, specifiedPartitionStartIndices)
   }
+
+  override def equals(obj: Any): Boolean = obj match {
+    case that: ShuffleExchangeWithCustomPartitionerExec =>
+      that.canEqual(this) && (/*this.partitioning == that.partitioning ||*/ this.child == that.child)
+    case _ => false
+  }
+
+  def canEqual(a: Any): Boolean = a.isInstanceOf[ShuffleExchangeWithCustomPartitionerExec]
 }
 
 object ShuffleExchangeWithCustomPartitionerExec {
