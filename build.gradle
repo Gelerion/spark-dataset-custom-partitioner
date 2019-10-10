@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'scala'
+    id "com.github.maiflai.scalatest" version "0.24"
 }
 
 group 'com.gelerion.spark.dataset.api.partitioner'
@@ -15,8 +16,26 @@ repositories {
 dependencies {
     implementation 'org.scala-lang:scala-library:2.11.8'
     implementation "org.scala-lang:scala-reflect:2.11.8"
-    implementation group: 'org.apache.spark', name: 'spark-sql_2.11', version: '2.4.4'
+    implementation 'org.apache.spark:spark-sql_2.11:2.4.4'
 
     testImplementation 'org.scalactic:scalactic_2.11:3.0.8'
     testImplementation 'org.scalatest:scalatest_2.11:3.0.8'
+    testRuntime 'org.pegdown:pegdown:1.4.2'
+}
+
+sourceSets {
+    main {
+        scala {
+            srcDirs = ['src/main/scala']
+        }
+    }
+    test {
+        scala {
+            srcDirs = ['src/test/scala']
+        }
+    }
+}
+
+test {
+    maxParallelForks = 1
 }

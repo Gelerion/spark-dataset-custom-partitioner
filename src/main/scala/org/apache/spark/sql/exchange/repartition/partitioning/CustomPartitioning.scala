@@ -2,7 +2,7 @@ package org.apache.spark.sql.exchange.repartition.partitioning
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.AttributeReference
-import org.apache.spark.sql.catalyst.plans.physical.{Distribution, HashClusteredDistribution, Partitioning}
+import org.apache.spark.sql.catalyst.plans.physical.{ClusteredDistribution, Distribution, HashClusteredDistribution, Partitioning}
 import org.apache.spark.sql.exchange.repartition.partitioner.CustomPartitioner
 import org.apache.spark.sql.types.DataType
 
@@ -24,6 +24,17 @@ trait CustomPartitioning extends Partitioning {
             .map(partKey => (partKey.name, partKey.dataType)).toSet
 
           thatPartitionKeys == this.partitioner.partitionKeys.get
+
+        case ClusteredDistribution(expressions, requiredNumPartitions)
+          if partitioner.partitionKeys.isDefined && expressions.forall(expr => expr.isInstanceOf[AttributeReference]) =>
+
+          val thatPartitionKeys: Set[(String, DataType)] = expressions
+            .map(_.asInstanceOf[AttributeReference])
+            .map(partKey => (partKey.name, partKey.dataType)).toSet
+
+          thatPartitionKeys == this.partitioner.partitionKeys.get
+
+          //val if(requiredNumPartitions.isDefined) requiredNumPartitions.get == this.partitioner.numPartitions : true
         case _ => false
       }
     }

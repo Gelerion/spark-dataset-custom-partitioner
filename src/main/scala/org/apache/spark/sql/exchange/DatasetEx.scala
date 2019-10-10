@@ -32,17 +32,6 @@ object implicits {
     }
   }
 
-//  implicit class DatasetRowEx[T <: Row : Encoder](val underlying: Dataset[T]) {
-//    private[sql] lazy val exprEnc: ExpressionEncoder[T] = encoderFor[T]
-//    private[sql] lazy val deserializer: Expression =
-//      exprEnc.resolveAndBind(underlying.logicalPlan.output, underlying.sparkSession.sessionState.analyzer).deserializer
-//
-//    def repartitionBy(partitioner: TypedPartitioner[T]): Dataset[T] = {
-//      val partitioning = new InternalTypedPartitioning(partitioner, deserializer)
-//      withTypedPlan(underlying.sparkSession, RepartitionByCustom(underlying.logicalPlan, partitioning))
-//    }
-//  }
-
   implicit class DataFrameEx(private val underlying: DataFrame) {
 
     def repartitionBy(partitioner: RowPartitioner): DataFrame = {

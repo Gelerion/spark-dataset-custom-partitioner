@@ -2,7 +2,7 @@ package org.apache.spark.sql.exchange.test
 
 import org.apache.log4j.{Level, Logger}
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.catalyst.optimizer.ConvertToLocalRelation
+import org.apache.spark.sql.catalyst.optimizer.{ConvertToLocalRelation, PushDownPredicate, ReorderJoin}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.{SQLContext, SQLImplicits, SparkSession}
 import org.scalatest.concurrent.Eventually
@@ -23,6 +23,8 @@ trait SharedSparkSession extends BeforeAndAfterEach
       // this rule may potentially block testing of other optimization rules such as
       // ConstantPropagation etc.
       .set(SQLConf.OPTIMIZER_EXCLUDED_RULES.key, ConvertToLocalRelation.ruleName)
+      .set(SQLConf.OPTIMIZER_EXCLUDED_RULES.key, PushDownPredicate.ruleName)
+      .set(SQLConf.OPTIMIZER_EXCLUDED_RULES.key, ReorderJoin.ruleName)
   }
 
   /**

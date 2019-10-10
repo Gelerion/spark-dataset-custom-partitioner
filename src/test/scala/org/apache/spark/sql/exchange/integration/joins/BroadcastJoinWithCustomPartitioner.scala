@@ -52,11 +52,13 @@ class BroadcastJoinWithCustomPartitioner extends SparkFunSuite with SharedSparkS
     val dep_1 = department.repartitionBy(new TypedPartitioner[Dept] {
       override def getPartitionIdx(value: Dept): Int = if (value.id.startsWith("a")) 0 else 1
       override def numPartitions: Int = 2
+      override def groupId: Option[Int] = Some(1)
     })
 
     val dep_2 = department.repartitionBy(new TypedPartitioner[Dept] {
       override def getPartitionIdx(value: Dept): Int = if (value.id.startsWith("a")) 0 else 1
       override def numPartitions: Int = 2
+      override def groupId: Option[Int] = Some(1)
     })
 
     val joined = dep_1.join(dep_2, Seq("id"))
