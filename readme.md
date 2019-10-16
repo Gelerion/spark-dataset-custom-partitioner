@@ -1,7 +1,76 @@
 # Intention
 
-
 # Usage
+Configuration step
+```scala
+import org.apache.spark.sql.catalyst.optimizer.ColumnPruning
+
+val conf = new SparkConf()
+  //This is a must! See explanation under Limitations section
+  .set(SQLConf.OPTIMIZER_EXCLUDED_RULES.key, ColumnPruning.ruleName)
+
+val spark = SparkSession.builder().config(conf).getOrCreate()
+
+//All the magic happens here
+spark.experimental.extraStrategies = RepartitionByCustomStrategy :: Nil
+```
+  
+#### Using with `Dataset`
+
+- Create custom `Dataset`
+```scala
+case class Person(name: String, age: Int, id: String)
+val persons: Dataset[Person] = spark.createDataset(makePersons())
+```
+
+- Define custom partitioner
+```scala
+import org.apache.spark.sql.exchange.repartition.partitioner.TypedPartitioner
+
+class PersonByFirstCharPartitioner extends TypedPartitioner[Person] {
+  override def getPartitionIdx(person: Person): Int = if (person.name.startsWith("D")) 0 else 1
+  override def numPartitions: Int = 2
+}
+```
+There are several differences between built-in Spark partitioner:
+1. `TypedPartitioner` is a type-safe partitioner with compile time validation. 
+2. It takes whole row as input, not the key
+
+- Repartition our data
+```scala
+//adds repartitionBy method to the Dataset API
+import org.apache.spark.sql.exchange.implicits._
+
+val partitioned = persons.repartitionBy(new PersonByFirstCharPartitioner)
+```
+As easy as it looks!  
+  
+Lets check the distribution
+```scala
+println(partitioned.rdd.getNumPartitions)
+//2
+println(partitioned.rdd.glom().collect() ...)
+//partition #0: Person(Denis,0,20780),Person(Denis,0,28867),Person(Denis,0,10671),Person(Denis,0,6121)
+//partition #1: Person(Max,0,7920),Person(Eitan,0,19589),Person(Viktor,0,10803),Person(Marat,0,12)
+```   
+As we could see partition `0` composed of persons with name starts with `D`.
+    
+Check `org.apache.spark.sql.exchange.examples.RepartitionPersonsByNameDataset` for complete example
+
+#### Using with `Dataframe`
+The single difference is in a partitioner type
+```scala
+val partitioned = departments.repartitionBy(new RowPartitioner {
+   override def getPartitionIdx(row: Row): Int =
+      if (row.getAs[String]("id").startsWith("d")) 0 else 1
+   override def numPartitions: Int = 2
+})
+```
+For untyped `Datafreame` we use `RowPartitioner` instead.
+  
+Check `org.apache.spark.sql.exchange.examples.RepartitionRowsByKeyDataframe` for complete example
+
+## GroupBy 
 
 # Limitations
 
