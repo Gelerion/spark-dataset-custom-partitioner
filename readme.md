@@ -1,5 +1,13 @@
 # Intention
 
+If you have ever wanted to repartition data using custom partition staying on the `Dataset API` level with 
+the full power of `Catalyst` optimizer under the hood, you are welcome!
+
+Benefits:
+- groupBy
+- joins
+- re-using exchanges with broadcast join
+
 # Usage
 Configuration step
 ```scala
@@ -71,6 +79,34 @@ For untyped `Datafreame` we use `RowPartitioner` instead.
 Check `org.apache.spark.sql.exchange.examples.RepartitionRowsByKeyDataframe` for complete example
 
 ## GroupBy 
+When we group by `column`(s) being also a partitioned by key(s) all the data is already co-located, 
+hence there shouldn't be any additional `shuffle` step.  
+```scala
+val data = df.repartitionBy(new RowPartitioner {
+   def getPartitionIdx(row: Row): Int = getPartitionFor(row.get("columnA"))
+})
+
+//no additional exchange here
+data.groupBy($"columnA").agg(sum($"xyz").as("sum")) 
+```
+As data is already distributed by `columnA` grouping clause won't schedule an additional exchange.
+  
+But how does `Spark` know that it is was partitioned by this column? Well we have to explicitly define `PartitionKey`.
+`PartitionKey` is not nothing than a pair of values composed of column name and data type.
+```scala
+val data = df.repartitionBy(new RowPartitioner {
+   def getPartitionIdx(row: Row): Int = getPartitionFor(row.get("columnA"))
+   def partitionKeys: Option[Set[PartitionKey]] = Some(Set(("columnA", StringType)))
+})
+```   
+This additional context will be taken into account by `Spark Planner` and if 
+there is a match between `groupBy` clause and `partitionKeys` expressions it concludes that
+guarantees made by this partitioner are sufficient to satisfy the partitioning scheme mandated by the `required` distribution.    
+  
+Note, after grouping number of partitions will remain the same.
+
+Check `org.apache.spark.sql.exchange.integration.groupings.GroupByWithCustomPartitioner` for more examples. 
+
 
 # Limitations
 
