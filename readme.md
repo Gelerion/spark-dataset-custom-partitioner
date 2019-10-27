@@ -1,12 +1,14 @@
 # Intention
 
-If you have ever wanted to repartition data using custom partition staying on the `Dataset API` level with 
+If you have ever wanted to repartition data using custom partition staying on the `Dataset API` level leveraging 
 the full power of `Catalyst` optimizer under the hood, you are welcome!
 
 Benefits:
-- groupBy
-- joins
-- re-using exchanges with broadcast join
+
+- **clean code** no RDD with Dataset/Dataframe API mixing
+- **groupBy** by repartitioned key won't add an addition shuffle step
+- **join** on repartitioned key won't add an addition shuffle step
+- **join** will properly re-use exchanges 
 
 # Usage
 Configuration step
@@ -23,7 +25,7 @@ val spark = SparkSession.builder().config(conf).getOrCreate()
 spark.experimental.extraStrategies = RepartitionByCustomStrategy :: Nil
 ```
   
-#### Using with `Dataset`
+#### Using with `Dataset API`
 
 - Create custom `Dataset`
 ```scala
@@ -42,7 +44,7 @@ class PersonByFirstCharPartitioner extends TypedPartitioner[Person] {
 ```
 There are several differences between built-in Spark partitioner:
 1. `TypedPartitioner` is a type-safe partitioner with compile time validation. 
-2. It takes whole row as input, not the key
+2. It takes whole row as input
 
 - Repartition our data
 ```scala
@@ -51,8 +53,7 @@ import org.apache.spark.sql.exchange.implicits._
 
 val partitioned = persons.repartitionBy(new PersonByFirstCharPartitioner)
 ```
-As easy as it looks!  
-  
+ 
 Lets check the distribution
 ```scala
 println(partitioned.rdd.getNumPartitions)
@@ -63,7 +64,7 @@ println(partitioned.rdd.glom().collect() ...)
 ```   
 As we could see partition `0` composed of persons with name starts with `D`.
     
-Check `org.apache.spark.sql.exchange.examples.RepartitionPersonsByNameDataset` for complete example
+See `org.apache.spark.sql.exchange.examples.RepartitionPersonsByNameDataset` for complete example
 
 #### Using with `Dataframe`
 The single difference is in a partitioner type
@@ -74,9 +75,9 @@ val partitioned = departments.repartitionBy(new RowPartitioner {
    override def numPartitions: Int = 2
 })
 ```
-For untyped `Datafreame` we use `RowPartitioner` instead.
+For untyped `Dataframe` we use `RowPartitioner` instead.
   
-Check `org.apache.spark.sql.exchange.examples.RepartitionRowsByKeyDataframe` for complete example
+See `org.apache.spark.sql.exchange.examples.RepartitionRowsByKeyDataframe` for complete example
 
 ## GroupBy 
 When we group by `column`(s) being also a partitioned by key(s) all the data is already co-located, 
@@ -89,12 +90,12 @@ val data = df.repartitionBy(new RowPartitioner {
 //no additional exchange here
 data.groupBy($"columnA").agg(sum($"xyz").as("sum")) 
 ```
-As data is already distributed by `columnA` grouping clause won't schedule an additional exchange.
+As data is already distributed by `columnA` grouping clause won't introduce an additional exchange.
   
 But how does `Spark` know that it is was partitioned by this column? Well we have to explicitly define `PartitionKey`.
 `PartitionKey` is not nothing than a pair of values composed of column name and data type.
 ```scala
-val data = df.repartitionBy(new RowPartitioner {
+val repartitioned = df.repartitionBy(new RowPartitioner {
    def getPartitionIdx(row: Row): Int = getPartitionFor(row.get("columnA"))
    def partitionKeys: Option[Set[PartitionKey]] = Some(Set(("columnA", StringType)))
 })
@@ -102,11 +103,47 @@ val data = df.repartitionBy(new RowPartitioner {
 This additional context will be taken into account by `Spark Planner` and if 
 there is a match between `groupBy` clause and `partitionKeys` expressions it concludes that
 guarantees made by this partitioner are sufficient to satisfy the partitioning scheme mandated by the `required` distribution.    
-  
-Note, after grouping number of partitions will remain the same.
 
-Check `org.apache.spark.sql.exchange.integration.groupings.GroupByWithCustomPartitioner` for more examples. 
+```scala
+val grouped = repartitioned.groupBy($"columnA").agg(sum($"dimension").as("sum"))
 
+assert(grouped.rdd.getNumPartitions == 2)
+//there is no additional shuffle step
+assert(grouped.queryExecution.executedPlan.find(_.isInstanceOf[ShuffleExchangeExec]).isEmpty)
+```  
+As you could see after grouping the number of partitions will remain untouched.
+
+See `org.apache.spark.sql.exchange.integration.groupings.GroupByWithCustomPartitioner` for more examples. 
+
+## Joins 
+`Spark Planner` will properly recognize when two dataset are repartitioned by the same `join key` 
+
+#### Example
+Let's say we have `departments` and `employers` dataset sharing `id` as join identifier. 
+```scala
+val departmentsRepartitioned = departments.repartitionBy(new TypedPartitioner[Dept] {
+  override def getPartitionIdx(value: Dept): Int = if (value.id.startsWith("a")) 0 else 1
+  override def numPartitions: Int = 2
+  override def partitionKeys: Option[Set[PartitionKey]] = Some(Set(("id", StringType)))
+})
+
+val employersRepartitioned = employers.repartitionBy(new TypedPartitioner[Emp] {
+  override def getPartitionIdx(value: Emp): Int = if (value.id.startsWith("a")) 0 else 1
+  override def numPartitions: Int = 2
+  override def partitionKeys: Option[Set[PartitionKey]] = Some(Set(("id", StringType)))
+})
+```
+In order to eliminate additional shuffle both `Partitioner`s must have the same values for:
+- `PartitionKey` (name and data type) 
+- `numPartitions` 
+
+If these two conditions are met there won't be additional shuffle step.
+```scala
+val joined = departmentsRepartitioned.join(employersRepartitioned, Seq("id"))
+
+//there is no additional shuffle step
+assert(joined.queryExecution.executedPlan.find(_.isInstanceOf[ShuffleExchangeExec]).isEmpty)
+```
 
 # Limitations
 

@@ -131,7 +131,6 @@ class SortMergeJoinWithCustomPartitioner extends SparkFunSuite with SharedSparkS
   }
 
   test("Row partitioner join") {
-    //we explicitly define the same group id so that Spark knows tat these two are the same
     val rowByIdPartitioner = new RowPartitioner {
       override def getPartitionIdx(row: Row): Int =
         if (row.getAs[String]("id").startsWith("a")) 0 else 1
@@ -150,7 +149,6 @@ class SortMergeJoinWithCustomPartitioner extends SparkFunSuite with SharedSparkS
   }
 
   test("Row partitioner left join") {
-    //we explicitly define the same group id so that Spark knows tat these two are the same
     val rowByIdPartitioner = new RowPartitioner {
       override def getPartitionIdx(row: Row): Int =
         if (row.getAs[String]("id").startsWith("a")) 0 else 1
